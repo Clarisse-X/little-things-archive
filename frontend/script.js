@@ -5,6 +5,9 @@ const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const memoryForm = document.getElementById("memoryForm");
 const successMessage = document.getElementById("successMessage");
+const submitBtn = document.getElementById("submitBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+let editingId = null;
 
 const validCategories = ["self-love", "friendship", "achievement", "family", "random happiness"];
 
@@ -43,6 +46,9 @@ function renderCard(memory) {
   const editBtn = document.createElement("button");
   editBtn.className = "btn-edit";
   editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", function () {
+    startEdit(memory);
+  });
 
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn-delete";
@@ -56,6 +62,33 @@ function renderCard(memory) {
   card.append(category, title, date, happiness, actions);
   gallery.appendChild(card);
 }
+
+function startEdit(memory) {
+  editingId = memory.id;
+  clearErrors();
+
+  document.getElementById("title").value = memory.title;
+  document.getElementById("story").value = memory.story;
+  document.getElementById("memory_date").value = memory.memory_date;
+  document.getElementById("category").value = memory.category;
+  document.getElementById("happiness_level").value = memory.happiness_level;
+
+  submitBtn.textContent = "Simpan Perubahan";
+  cancelEditBtn.style.display = "block";
+  memoryForm.scrollIntoView({ behavior: "smooth" });
+}
+
+function stopEdit() {
+  editingId = null;
+  memoryForm.reset();
+  submitBtn.textContent = "Simpan Kenangan";
+  cancelEditBtn.style.display = "none";
+}
+
+cancelEditBtn.addEventListener("click", function () {
+  stopEdit();
+  clearErrors();
+});
 
 async function deleteMemory(memory) {
   const sure = confirm('Yakin mau menghapus kenangan "' + memory.title + '"?');
@@ -159,8 +192,11 @@ memoryForm.addEventListener("submit", async function (event) {
 
   // Kirim ke API
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
+        const isEditing = editingId !== null;
+    const url = isEditing ? API_URL + "/" + editingId : API_URL;
+
+    const response = await fetch(url, {
+      method: isEditing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title,
@@ -189,8 +225,11 @@ memoryForm.addEventListener("submit", async function (event) {
       return;
     }
 
-    memoryForm.reset();
-    successMessage.textContent = "Kenangan berhasil disimpan!";
+        const wasEditing = editingId !== null;
+    stopEdit();
+    successMessage.textContent = wasEditing
+      ? "Perubahan berhasil disimpan!"
+      : "Kenangan berhasil disimpan!";
     loadMemories();
   } catch (error) {
     document.getElementById("error-title").textContent =
