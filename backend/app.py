@@ -1,8 +1,11 @@
 
 import os
+import re
 from datetime import date
 
 from flask import Flask, jsonify, request
+from sqlalchemy import or_
+
 from models import db, Memory
 
 app = Flask(__name__)
@@ -15,6 +18,21 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
+ALLOWED_CATEGORIES = {
+    "self-love",
+    "friendship",
+    "achievement",
+    "family",
+    "random happiness",
+}
+
+
+def validation_error(details):
+    return jsonify({
+        "error": "Validasi gagal",
+        "details": details
+    }), 400
+
 
 def memory_to_dict(memory):
     return {
@@ -24,148 +42,210 @@ def memory_to_dict(memory):
         "memory_date": memory.memory_date.isoformat(),
         "category": memory.category,
         "happiness_level": memory.happiness_level,
-        "photo_path": memory.photo_path
+        "created_at": memory.created_at.isoformat(),
     }
+
+
+def validate_memory_data(data, partial=False):
+    details = {}
+    cleaned = {}
+
+    if not isinstance(data, dict):
+        return {}, {"body": "Body harus berupa JSON object"}
+
+    required_fields = [
+        "title",
+        "story",
+        "memory_date",
+        "category",
+        "happiness_level",
+    ]
+
+    for field in required_fields:
+        if not partial and field not in data:
+            details[field] = f"{field} wajib diisi"
+
+    if "title" in data:
+        value = data["title"]
+        if not isinstance(value, str) or not value.strip():
+            details["title"] = "Judul wajib diisi"
+        elif len(value.strip()) > 150:
+            details["title"] = "Judul maksimal 150 karakter"
+        else:
+            cleaned["title"] = value.strip()
+
+    if "story" in data:
+        value = data["story"]
+        if not isinstance(value, str) or not value.strip():
+            details["story"] = "Cerita wajib diisi"
+        else:
+            cleaned["story"] = value.strip()
+
+    if "memory_date" in data:
+        value = data["memory_date"]
+        if (
+            not isinstance(value, str)
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)
+        ):
+            details["memory_date"] = "Tanggal harus berformat YYYY-MM-DD"
+        else:
+            try:
+                cleaned["memory_date"] = date.fromisoformat(value)
+            except ValueError:
+                details["memory_date"] = "Tanggal tidak valid"
+
+    if "category" in data:
+        value = data["category"]
+        if not isinstance(value, str) or value not in ALLOWED_CATEGORIES:
+            details["category"] = "Kategori tidak valid"
+        else:
+            cleaned["category"] = value
+
+    if "happiness_level" in data:
+        value = data["happiness_level"]
+        if type(value) is not int or not 1 <= value <= 5:
+            details["happiness_level"] = (
+                "Tingkat kebahagiaan harus berupa angka 1 sampai 5"
+            )
+        else:
+            cleaned["happiness_level"] = value
+
+    return cleaned, details
 
 
 @app.get("/")
 def home():
-    return jsonify({"message": "Little Things Archive API is running!"})
+    return jsonify({
+        "message": "Little Things Archive API is running!"
+    })
 
 
 @app.get("/health")
 def health():
-    return jsonify({
-        "status": "ok",
-        "service": "little-things-archive-api"
-    }), 200
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        return jsonify({
+            "status": "ok",
+            "service": "little-things-archive-api",
+            "database": "connected",
+        }), 200
+    except Exception:
+        app.logger.exception("Database health check failed")
+        return jsonify({
+            "status": "error",
+            "database": "unavailable",
+        }), 503
 
 
-# READ: Get all memories
 @app.get("/api/memories")
 def get_memories():
-    memories = Memory.query.order_by(Memory.memory_date.desc()).all()
+    query = Memory.query
+
+    search = request.args.get("search", "").strip()
+    category = request.args.get("category", "").strip()
+
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                Memory.title.ilike(pattern),
+                Memory.story.ilike(pattern),
+            )
+        )
+
+    if category:
+        if category not in ALLOWED_CATEGORIES:
+            return validation_error({
+                "category": "Kategori tidak valid"
+            })
+        query = query.filter(Memory.category == category)
+
+    memories = query.order_by(
+        Memory.memory_date.desc(),
+        Memory.id.desc()
+    ).all()
+
     return jsonify([memory_to_dict(m) for m in memories]), 200
 
 
-# READ: Get one memory
 @app.get("/api/memories/<int:memory_id>")
 def get_memory(memory_id):
     memory = db.session.get(Memory, memory_id)
 
     if memory is None:
-        return jsonify({"error": "Memory not found"}), 404
+        return jsonify({"error": "Memory tidak ditemukan"}), 404
 
     return jsonify(memory_to_dict(memory)), 200
 
 
-# CREATE: Add a memory
 @app.post("/api/memories")
 def create_memory():
     data = request.get_json(silent=True)
+    cleaned, details = validate_memory_data(data)
 
-    if not isinstance(data, dict):
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if details:
+        return validation_error(details)
 
-    title = data.get("title")
-    story = data.get("story")
-    memory_date = data.get("memory_date")
-    category = data.get("category")
-    level = data.get("happiness_level")
-
-    if not all([title, story, memory_date, category]):
-        return jsonify({
-            "error": "title, story, memory_date, and category are required"
-        }), 400
-
-    if not isinstance(title, str) or not title.strip():
-        return jsonify({"error": "title must be a non-empty string"}), 400
-
-    if not isinstance(story, str) or not story.strip():
-        return jsonify({"error": "story must be a non-empty string"}), 400
+    memory = Memory(**cleaned)
 
     try:
-        parsed_date = date.fromisoformat(memory_date)
-    except (ValueError, TypeError):
-        return jsonify({"error": "memory_date must use YYYY-MM-DD format"}), 400
-
-    if not isinstance(category, str) or not category.strip():
-        return jsonify({"error": "category must be a non-empty string"}), 400
-
-    if type(level) is not int or not 1 <= level <= 5:
-        return jsonify({"error": "happiness_level must be an integer from 1 to 5"}), 400
-
-    memory = Memory(
-        title=title.strip(),
-        story=story.strip(),
-        memory_date=parsed_date,
-        category=category.strip(),
-        happiness_level=level,
-        photo_path=None
-    )
-
-    db.session.add(memory)
-    db.session.commit()
-
-    return jsonify(memory_to_dict(memory)), 201
+        db.session.add(memory)
+        db.session.commit()
+        return jsonify(memory_to_dict(memory)), 201
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Failed to create memory")
+        return jsonify({"error": "Gagal menyimpan memory"}), 500
 
 
-# UPDATE: Edit a memory
 @app.put("/api/memories/<int:memory_id>")
 def update_memory(memory_id):
     memory = db.session.get(Memory, memory_id)
 
     if memory is None:
-        return jsonify({"error": "Memory not found"}), 404
+        return jsonify({"error": "Memory tidak ditemukan"}), 404
 
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict) or not data:
-        return jsonify({"error": "Request body must be a non-empty JSON object"}), 400
+        return validation_error({
+            "body": "Body harus berupa JSON object yang tidak kosong"
+        })
 
-    if "title" in data:
-        if not isinstance(data["title"], str) or not data["title"].strip():
-            return jsonify({"error": "Invalid title"}), 400
-        memory.title = data["title"].strip()
+    cleaned, details = validate_memory_data(data, partial=True)
 
-    if "story" in data:
-        if not isinstance(data["story"], str) or not data["story"].strip():
-            return jsonify({"error": "Invalid story"}), 400
-        memory.story = data["story"].strip()
+    if details:
+        return validation_error(details)
 
-    if "memory_date" in data:
-        try:
-            memory.memory_date = date.fromisoformat(data["memory_date"])
-        except (ValueError, TypeError):
-            return jsonify({"error": "memory_date must use YYYY-MM-DD format"}), 400
+    for field, value in cleaned.items():
+        setattr(memory, field, value)
 
-    if "category" in data:
-        if not isinstance(data["category"], str) or not data["category"].strip():
-            return jsonify({"error": "Invalid category"}), 400
-        memory.category = data["category"].strip()
-
-    if "happiness_level" in data:
-        level = data["happiness_level"]
-        if type(level) is not int or not 1 <= level <= 5:
-            return jsonify({"error": "happiness_level must be an integer from 1 to 5"}), 400
-        memory.happiness_level = level
-
-    db.session.commit()
-    return jsonify(memory_to_dict(memory)), 200
+    try:
+        db.session.commit()
+        return jsonify(memory_to_dict(memory)), 200
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Failed to update memory")
+        return jsonify({"error": "Gagal memperbarui memory"}), 500
 
 
-# DELETE: Remove a memory
 @app.delete("/api/memories/<int:memory_id>")
 def delete_memory(memory_id):
     memory = db.session.get(Memory, memory_id)
 
     if memory is None:
-        return jsonify({"error": "Memory not found"}), 404
+        return jsonify({"error": "Memory tidak ditemukan"}), 404
 
-    db.session.delete(memory)
-    db.session.commit()
+    deleted_memory = memory_to_dict(memory)
 
-    return jsonify({"message": "Memory deleted successfully"}), 200
+    try:
+        db.session.delete(memory)
+        db.session.commit()
+        return jsonify(deleted_memory), 200
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Failed to delete memory")
+        return jsonify({"error": "Gagal menghapus memory"}), 500
 
 
 if __name__ == "__main__":
@@ -173,4 +253,3 @@ if __name__ == "__main__":
         db.create_all()
 
     app.run(debug=True, port=5000)
-
