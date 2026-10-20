@@ -68,7 +68,7 @@ showMemories();
 const memoryForm = document.getElementById("memoryForm");
 const successMessage = document.getElementById("successMessage");
 
-const validCategories = ["Self-love", "Friendship", "Achievement", "Family", "Random Happiness"];
+const validCategories = ["self-love", "friendship", "achievement", "family", "random happiness"];
 
 function clearErrors() {
   document.querySelectorAll(".error").forEach(function (el) {

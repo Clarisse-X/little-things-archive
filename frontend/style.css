@@ -36,6 +36,7 @@ main {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
+  text-transform: capitalize;
 }
 
 .date {
