@@ -1,74 +1,84 @@
-const memories = [
-  {
-    id: 1,
-    title: "Finally survived presentation day!",
-    story: "Presentasi kelompok akhirnya selesai dengan lancar.",
-    memory_date: "2026-10-18",
-    category: "Achievement",
-    happiness_level: 5
-  },
-  {
-    id: 2,
-    title: "Makan mie ayam favorit",
-    story: "Pulang kuliah capek, ditraktir mie ayam sama teman.",
-    memory_date: "2026-10-15",
-    category: "Friendship",
-    happiness_level: 4
-  },
-  {
-    id: 3,
-    title: "Langit sore yang cantik",
-    story: "Lihat langit oranye pas pulang kuliah.",
-    memory_date: "2026-10-12",
-    category: "Random Happiness",
-    happiness_level: 3
-  }
-];
+const API_URL = "/api/memories";
 
 const gallery = document.getElementById("gallery");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
-
-function showMemories() {
-  gallery.innerHTML = "";
-
-  const keyword = searchInput.value.toLowerCase();
-  const category = categoryFilter.value;
-
-  const filtered = memories.filter(function (memory) {
-    const matchTitle = memory.title.toLowerCase().includes(keyword);
-    const matchCategory = category === "" || memory.category === category;
-    return matchTitle && matchCategory;
-  });
-
-  if (filtered.length === 0) {
-    gallery.innerHTML = '<p class="empty">Belum ada kenangan yang cocok.</p>';
-    return;
-  }
-
-  filtered.forEach(function (memory) {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML =
-      '<span class="category">' + memory.category + "</span>" +
-      "<h2>" + memory.title + "</h2>" +
-      '<p class="date">' + memory.memory_date + "</p>" +
-      '<p class="happiness">' + "😊".repeat(memory.happiness_level) + "</p>";
-
-    gallery.appendChild(card);
-  });
-}
-
-searchInput.addEventListener("input", showMemories);
-categoryFilter.addEventListener("change", showMemories);
-
-showMemories();
-
 const memoryForm = document.getElementById("memoryForm");
 const successMessage = document.getElementById("successMessage");
 
 const validCategories = ["self-love", "friendship", "achievement", "family", "random happiness"];
+
+// ---------- Tampilkan galeri dari API ----------
+
+function showMessage(text) {
+  gallery.innerHTML = "";
+  const p = document.createElement("p");
+  p.className = "empty";
+  p.textContent = text;
+  gallery.appendChild(p);
+}
+
+function renderCard(memory) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const category = document.createElement("span");
+  category.className = "category";
+  category.textContent = memory.category;
+
+  const title = document.createElement("h2");
+  title.textContent = memory.title;
+
+  const date = document.createElement("p");
+  date.className = "date";
+  date.textContent = memory.memory_date;
+
+  const happiness = document.createElement("p");
+  happiness.className = "happiness";
+  happiness.textContent = "😊".repeat(memory.happiness_level);
+
+  card.append(category, title, date, happiness);
+  gallery.appendChild(card);
+}
+
+async function loadMemories() {
+  const params = new URLSearchParams();
+  const keyword = searchInput.value.trim();
+  const category = categoryFilter.value;
+
+  if (keyword !== "") params.set("search", keyword);
+  if (category !== "") params.set("category", category);
+
+  const query = params.toString();
+  const url = query ? API_URL + "?" + query : API_URL;
+
+  showMessage("Memuat kenangan...");
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      showMessage("Gagal memuat kenangan (kode " + response.status + ").");
+      return;
+    }
+
+    const memories = await response.json();
+
+    if (memories.length === 0) {
+      showMessage("Belum ada kenangan yang cocok.");
+      return;
+    }
+
+    gallery.innerHTML = "";
+    memories.forEach(renderCard);
+  } catch (error) {
+    showMessage("Tidak bisa terhubung ke server. Pastikan backend sudah jalan.");
+  }
+}
+
+searchInput.addEventListener("input", loadMemories);
+categoryFilter.addEventListener("change", loadMemories);
+
+// ---------- Form tambah kenangan ----------
 
 function clearErrors() {
   document.querySelectorAll(".error").forEach(function (el) {
@@ -77,7 +87,7 @@ function clearErrors() {
   successMessage.textContent = "";
 }
 
-memoryForm.addEventListener("submit", function (event) {
+memoryForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   clearErrors();
 
@@ -87,6 +97,7 @@ memoryForm.addEventListener("submit", function (event) {
   const category = document.getElementById("category").value;
   const happiness = Number(document.getElementById("happiness_level").value);
 
+  // Cek cepat di browser (backend tetap yang menentukan)
   let valid = true;
 
   if (title === "") {
@@ -110,20 +121,47 @@ memoryForm.addEventListener("submit", function (event) {
     valid = false;
   }
 
-  if (!valid) {
-    return;
+  if (!valid) return;
+
+  // Kirim ke API
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title,
+        story: story,
+        memory_date: memoryDate,
+        category: category,
+        happiness_level: happiness
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.status === 400 && result.details) {
+      // Tampilkan pesan error dari backend di bawah input yang sesuai
+      Object.keys(result.details).forEach(function (field) {
+        const el = document.getElementById("error-" + field);
+        if (el) el.textContent = result.details[field];
+      });
+      return;
+    }
+
+    if (!response.ok) {
+      successMessage.textContent = "";
+      document.getElementById("error-title").textContent =
+        result.error || "Terjadi kesalahan di server.";
+      return;
+    }
+
+    memoryForm.reset();
+    successMessage.textContent = "Kenangan berhasil disimpan!";
+    loadMemories();
+  } catch (error) {
+    document.getElementById("error-title").textContent =
+      "Tidak bisa terhubung ke server. Pastikan backend sudah jalan.";
   }
-
-  memories.unshift({
-    id: Date.now(),
-    title: title,
-    story: story,
-    memory_date: memoryDate,
-    category: category,
-    happiness_level: happiness
-  });
-
-  showMemories();
-  memoryForm.reset();
-  successMessage.textContent = "Kenangan berhasil disimpan!";
 });
+
+loadMemories();
