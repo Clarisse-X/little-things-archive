@@ -37,8 +37,42 @@ function renderCard(memory) {
   happiness.className = "happiness";
   happiness.textContent = "😊".repeat(memory.happiness_level);
 
-  card.append(category, title, date, happiness);
+    const actions = document.createElement("div");
+  actions.className = "card-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "btn-edit";
+  editBtn.textContent = "Edit";
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "btn-delete";
+  deleteBtn.textContent = "Hapus";
+  deleteBtn.addEventListener("click", function () {
+    deleteMemory(memory);
+  });
+
+  actions.append(editBtn, deleteBtn);
+
+  card.append(category, title, date, happiness, actions);
   gallery.appendChild(card);
+}
+
+async function deleteMemory(memory) {
+  const sure = confirm('Yakin mau menghapus kenangan "' + memory.title + '"?');
+  if (!sure) return;
+
+  try {
+    const response = await fetch(API_URL + "/" + memory.id, { method: "DELETE" });
+
+    if (!response.ok) {
+      alert("Gagal menghapus kenangan (kode " + response.status + ").");
+      return;
+    }
+
+    loadMemories();
+  } catch (error) {
+    alert("Tidak bisa terhubung ke server. Pastikan backend sudah jalan.");
+  }
 }
 
 async function loadMemories() {

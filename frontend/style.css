@@ -129,3 +129,29 @@ main {
   font-size: 14px;
   text-align: center;
 }
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-edit,
+.btn-delete {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background-color: #ffd6e0;
+  color: #e0527a;
+}
+
+.btn-delete {
+  background-color: #f1f1f1;
+  color: #d9302c;
+}
