@@ -42,3 +42,89 @@ main {
   color: #999;
   font-size: 14px;
 }
+
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.controls input,
+.controls select {
+  padding: 10px 14px;
+  border: 1px solid #ffd6e0;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+}
+
+.controls input {
+  width: 240px;
+}
+
+.empty {
+  color: #999;
+  text-align: center;
+  width: 100%;
+}
+
+.form-section {
+  background-color: white;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 400px;
+  margin: 0 auto 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-section h2 {
+  margin-top: 0;
+  color: #e0527a;
+}
+
+.form-section label {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.form-section input,
+.form-section textarea,
+.form-section select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-top: 4px;
+  border: 1px solid #ffd6e0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.form-section button {
+  margin-top: 16px;
+  width: 100%;
+  padding: 12px;
+  background-color: #e0527a;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.error {
+  color: #d9302c;
+  font-size: 12px;
+  margin: 4px 0 0;
+  min-height: 0;
+}
+
+.success {
+  color: #2e9e5b;
+  font-size: 14px;
+  text-align: center;
+}

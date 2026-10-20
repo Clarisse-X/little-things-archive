@@ -26,11 +26,27 @@ const memories = [
 ];
 
 const gallery = document.getElementById("gallery");
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
 
 function showMemories() {
   gallery.innerHTML = "";
 
-  memories.forEach(function (memory) {
+  const keyword = searchInput.value.toLowerCase();
+  const category = categoryFilter.value;
+
+  const filtered = memories.filter(function (memory) {
+    const matchTitle = memory.title.toLowerCase().includes(keyword);
+    const matchCategory = category === "" || memory.category === category;
+    return matchTitle && matchCategory;
+  });
+
+  if (filtered.length === 0) {
+    gallery.innerHTML = '<p class="empty">Belum ada kenangan yang cocok.</p>';
+    return;
+  }
+
+  filtered.forEach(function (memory) {
     const card = document.createElement("div");
     card.className = "card";
 
@@ -44,4 +60,70 @@ function showMemories() {
   });
 }
 
+searchInput.addEventListener("input", showMemories);
+categoryFilter.addEventListener("change", showMemories);
+
 showMemories();
+
+const memoryForm = document.getElementById("memoryForm");
+const successMessage = document.getElementById("successMessage");
+
+const validCategories = ["Self-love", "Friendship", "Achievement", "Family", "Random Happiness"];
+
+function clearErrors() {
+  document.querySelectorAll(".error").forEach(function (el) {
+    el.textContent = "";
+  });
+  successMessage.textContent = "";
+}
+
+memoryForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  clearErrors();
+
+  const title = document.getElementById("title").value.trim();
+  const story = document.getElementById("story").value.trim();
+  const memoryDate = document.getElementById("memory_date").value;
+  const category = document.getElementById("category").value;
+  const happiness = Number(document.getElementById("happiness_level").value);
+
+  let valid = true;
+
+  if (title === "") {
+    document.getElementById("error-title").textContent = "Judul wajib diisi";
+    valid = false;
+  }
+  if (story === "") {
+    document.getElementById("error-story").textContent = "Cerita wajib diisi";
+    valid = false;
+  }
+  if (memoryDate === "") {
+    document.getElementById("error-memory_date").textContent = "Tanggal wajib diisi";
+    valid = false;
+  }
+  if (!validCategories.includes(category)) {
+    document.getElementById("error-category").textContent = "Pilih salah satu kategori";
+    valid = false;
+  }
+  if (!Number.isInteger(happiness) || happiness < 1 || happiness > 5) {
+    document.getElementById("error-happiness_level").textContent = "Harus angka 1 sampai 5";
+    valid = false;
+  }
+
+  if (!valid) {
+    return;
+  }
+
+  memories.unshift({
+    id: Date.now(),
+    title: title,
+    story: story,
+    memory_date: memoryDate,
+    category: category,
+    happiness_level: happiness
+  });
+
+  showMemories();
+  memoryForm.reset();
+  successMessage.textContent = "Kenangan berhasil disimpan!";
+});
