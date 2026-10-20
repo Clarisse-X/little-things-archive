@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from models import db, Memory
 
 app = Flask(__name__)
+app.logger.setLevel("INFO")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "DATABASE_URL",
@@ -17,6 +18,14 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+
+@app.before_request
+def log_request():
+    app.logger.info(
+        "%s %s",
+        request.method,
+        request.path
+    )
 
 ALLOWED_CATEGORIES = {
     "self-love",
