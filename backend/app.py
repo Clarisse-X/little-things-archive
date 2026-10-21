@@ -10,6 +10,16 @@ from models import db, Memory
 
 app = Flask(__name__)
 app.logger.setLevel("INFO")
+ADMIN_PIN = os.getenv("ADMIN_PIN")
+
+
+def verify_admin_pin():
+    provided_pin = request.headers.get("X-Admin-PIN", "")
+
+    if not ADMIN_PIN or provided_pin != ADMIN_PIN:
+        return False
+
+    return True
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "DATABASE_URL",
@@ -121,6 +131,22 @@ def validate_memory_data(data, partial=False):
 
     return cleaned, details
 
+@app.post("/api/verify-pin")
+def verify_pin_endpoint():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Body harus berupa JSON"}), 400
+
+    provided_pin = data.get("pin", "")
+
+    if not isinstance(provided_pin, str) or not provided_pin:
+        return jsonify({"error": "PIN wajib diisi"}), 400
+
+    if not ADMIN_PIN or provided_pin != ADMIN_PIN:
+        return jsonify({"error": "PIN Admin salah"}), 401
+
+    return jsonify({"message": "PIN Admin benar"}), 200
 
 @app.get("/")
 def home():
@@ -209,6 +235,9 @@ def create_memory():
 
 @app.put("/api/memories/<int:memory_id>")
 def update_memory(memory_id):
+    if not verify_admin_pin():
+        return jsonify({"error": "PIN Admin salah atau tidak valid"}), 401
+    
     memory = db.session.get(Memory, memory_id)
 
     if memory is None:
@@ -240,6 +269,9 @@ def update_memory(memory_id):
 
 @app.delete("/api/memories/<int:memory_id>")
 def delete_memory(memory_id):
+    if not verify_admin_pin():
+        return jsonify({"error": "PIN Admin salah atau tidak valid"}), 401
+    
     memory = db.session.get(Memory, memory_id)
 
     if memory is None:
