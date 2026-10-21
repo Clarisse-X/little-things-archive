@@ -213,3 +213,25 @@ main {
   .controls input,
   .controls select { width: 100%; box-sizing: border-box; }
 }
+
+#pinInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-top: 8px;
+  border: 1px solid #ffd6e0;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.btn-pin {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  background-color: #e0527a;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  cursor: pointer;
+}

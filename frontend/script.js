@@ -46,15 +46,16 @@ function renderCard(memory) {
   const editBtn = document.createElement("button");
   editBtn.className = "btn-edit";
   editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", function () {
-    startEdit(memory);
+
+        editBtn.addEventListener("click", function () {
+    askPin(function () { startEdit(memory); });
   });
 
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn-delete";
   deleteBtn.textContent = "Hapus";
-  deleteBtn.addEventListener("click", function () {
-    deleteMemory(memory);
+    deleteBtn.addEventListener("click", function () {
+    askPin(function () { deleteMemory(memory); });
   });
 
     const readBtn = document.createElement("button");
@@ -90,6 +91,75 @@ storyModal.addEventListener("click", function (event) {
   if (event.target === storyModal) closeStory();
 });
 
+const pinModal = document.getElementById("pinModal");
+const pinInput = document.getElementById("pinInput");
+const pinMessage = document.getElementById("pinMessage");
+let pendingAction = null;
+let adminPin = "";
+
+function askPin(action) {
+  pendingAction = action;
+  pinInput.value = "";
+  pinMessage.textContent = "";
+  pinMessage.className = "error";
+  pinModal.style.display = "flex";
+  pinInput.focus();
+}
+
+function closePin() {
+  pinModal.style.display = "none";
+  pendingAction = null;
+}
+
+async function submitPin() {
+  const pin = pinInput.value.trim();
+  pinMessage.className = "error";
+
+  if (pin === "") {
+    pinMessage.textContent = "PIN wajib diisi";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/verify-pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: pin })
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      pinMessage.textContent = "PIN salah, coba lagi";
+      pinInput.value = "";
+      return;
+    }
+    if (!response.ok) {
+      pinMessage.textContent = "Gagal memeriksa PIN (kode " + response.status + ")";
+      return;
+    }
+
+    adminPin = pin;
+    pinMessage.className = "success";
+    pinMessage.textContent = "PIN benar";
+
+    const action = pendingAction;
+    setTimeout(function () {
+      closePin();
+      if (action) action();
+    }, 600);
+  } catch (error) {
+    pinMessage.textContent = "Tidak bisa terhubung ke server.";
+  }
+}
+
+document.getElementById("pinSubmit").addEventListener("click", submitPin);
+document.getElementById("closePin").addEventListener("click", closePin);
+pinInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") submitPin();
+});
+pinModal.addEventListener("click", function (event) {
+  if (event.target === pinModal) closePin();
+});
+
 function startEdit(memory) {
   editingId = memory.id;
   clearErrors();
@@ -107,6 +177,7 @@ function startEdit(memory) {
 
 function stopEdit() {
   editingId = null;
+  adminPin = "";
   memoryForm.reset();
   submitBtn.textContent = "Simpan Kenangan";
   cancelEditBtn.style.display = "none";
@@ -122,7 +193,16 @@ async function deleteMemory(memory) {
   if (!sure) return;
 
   try {
-    const response = await fetch(API_URL + "/" + memory.id, { method: "DELETE" });
+        const response = await fetch(API_URL + "/" + memory.id, {
+      method: "DELETE",
+      headers: { "X-Admin-PIN": adminPin }
+    });
+    adminPin = "";
+
+    if (response.status === 401 || response.status === 403) {
+      alert("PIN salah atau kedaluwarsa. Klik Hapus lagi.");
+      return;
+    }
 
     if (!response.ok) {
       alert("Gagal menghapus kenangan (kode " + response.status + ").");
@@ -223,8 +303,10 @@ memoryForm.addEventListener("submit", async function (event) {
     const url = isEditing ? API_URL + "/" + editingId : API_URL;
 
     const response = await fetch(url, {
-      method: isEditing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
+            method: isEditing ? "PUT" : "POST",
+      headers: isEditing
+        ? { "Content-Type": "application/json", "X-Admin-PIN": adminPin }
+        : { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title,
         story: story,
@@ -235,6 +317,13 @@ memoryForm.addEventListener("submit", async function (event) {
     });
 
     const result = await response.json();
+
+        if (response.status === 401 || response.status === 403) {
+      stopEdit();
+      document.getElementById("error-title").textContent =
+        "PIN salah atau kedaluwarsa. Klik Edit lagi.";
+      return;
+    }
 
     if (response.status === 400 && result.details) {
       // Tampilkan pesan error dari backend di bawah input yang sesuai
