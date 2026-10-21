@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Little Things Archive</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Little Things Archive</h1>
+    <p>Tempat menyimpan momen-momen kecil yang bikin bahagia.</p>
+  </header>
+
+    <section class="form-section">
+    <h2>Tambah Kenangan</h2>
+    <form id="memoryForm">
+      <label for="title">Judul</label>
+      <input type="text" id="title" placeholder="Contoh: Finally survived presentation day!">
+      <p class="error" id="error-title"></p>
+
+      <label for="story">Cerita singkat</label>
+      <textarea id="story" rows="3" placeholder="Ceritakan sedikit..."></textarea>
+      <p class="error" id="error-story"></p>
+
+      <label for="memory_date">Tanggal kejadian</label>
+      <input type="date" id="memory_date">
+      <p class="error" id="error-memory_date"></p>
+
+      <label for="category">Kategori</label>
+      <select id="category">
+        <option value="">Pilih kategori</option>
+        <option value="self-love">Self-love</option>
+        <option value="friendship">Friendship</option>
+        <option value="achievement">Achievement</option>
+        <option value="family">Family</option>
+        <option value="random happiness">Random Happiness</option>
+      </select>
+      <p class="error" id="error-category"></p>
+
+      <label for="happiness_level">Tingkat kebahagiaan (1-5)</label>
+      <input type="number" id="happiness_level" min="1" max="5">
+      <p class="error" id="error-happiness_level"></p>
+
+            <button type="submit" id="submitBtn">Simpan Kenangan</button>
+      <button type="button" id="cancelEditBtn" style="display:none">Batal</button>
+      <p class="success" id="successMessage"></p>
+    </form>
+  </section>
+
+    <section class="controls">
+    <input type="text" id="searchInput" placeholder="Cari judul kenangan...">
+    <select id="categoryFilter">
+      <option value="">Semua kategori</option>
+      <option value="Self-love">Self-love</option>
+      <option value="Friendship">Friendship</option>
+      <option value="Achievement">Achievement</option>
+      <option value="Family">Family</option>
+      <option value="Random Happiness">Random Happiness</option>
+    </select>
+  </section>
+
+    <main id="gallery"></main>
+
+      <div id="storyModal" class="modal" style="display:none">
+    <div class="modal-box">
+      <button type="button" id="closeModal" class="modal-close">✕</button>
+      <span class="category" id="modalCategory"></span>
+      <h2 id="modalTitle"></h2>
+      <p class="date" id="modalDate"></p>
+      <p id="modalStory"></p>
+      <p class="happiness" id="modalHappiness"></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
