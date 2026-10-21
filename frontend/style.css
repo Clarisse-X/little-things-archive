@@ -161,3 +161,55 @@ main {
   background-color: #f1f1f1;
   color: #666;
 }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.modal-box {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
+}
+
+.btn-read {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 16px;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: #e0527a;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .card { width: 100%; box-sizing: border-box; }
+  .controls input,
+  .controls select { width: 100%; box-sizing: border-box; }
+}

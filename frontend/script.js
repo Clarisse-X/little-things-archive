@@ -57,11 +57,38 @@ function renderCard(memory) {
     deleteMemory(memory);
   });
 
-  actions.append(editBtn, deleteBtn);
+    const readBtn = document.createElement("button");
+  readBtn.className = "btn-read";
+  readBtn.textContent = "Baca";
+  readBtn.addEventListener("click", function () {
+    openStory(memory);
+  });
+
+  actions.append(readBtn, editBtn, deleteBtn);
 
   card.append(category, title, date, happiness, actions);
   gallery.appendChild(card);
 }
+
+const storyModal = document.getElementById("storyModal");
+
+function openStory(memory) {
+  document.getElementById("modalCategory").textContent = memory.category;
+  document.getElementById("modalTitle").textContent = memory.title;
+  document.getElementById("modalDate").textContent = memory.memory_date;
+  document.getElementById("modalStory").textContent = memory.story;
+  document.getElementById("modalHappiness").textContent = "😊".repeat(memory.happiness_level);
+  storyModal.style.display = "flex";
+}
+
+function closeStory() {
+  storyModal.style.display = "none";
+}
+
+document.getElementById("closeModal").addEventListener("click", closeStory);
+storyModal.addEventListener("click", function (event) {
+  if (event.target === storyModal) closeStory();
+});
 
 function startEdit(memory) {
   editingId = memory.id;
