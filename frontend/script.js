@@ -188,9 +188,18 @@ cancelEditBtn.addEventListener("click", function () {
   clearErrors();
 });
 
+
 async function deleteMemory(memory) {
-  const sure = confirm('Yakin mau menghapus kenangan "' + memory.title + '"?');
+  const sure = confirm(
+    'Yakin mau menghapus kenangan "' + memory.title + '"?'
+  );
   if (!sure) return;
+
+  const pin = prompt("Masukkan PIN Admin untuk menghapus kenangan:");
+  if (pin === null || pin.trim() === "") {
+    alert("Penghapusan dibatalkan. PIN Admin wajib diisi.");
+    return;
+  }
 
   try {
         const response = await fetch(API_URL + "/" + memory.id, {
@@ -209,11 +218,13 @@ async function deleteMemory(memory) {
       return;
     }
 
+    alert("Kenangan berhasil dihapus!");
     loadMemories();
   } catch (error) {
     alert("Tidak bisa terhubung ke server. Pastikan backend sudah jalan.");
   }
 }
+
 
 async function loadMemories() {
   const params = new URLSearchParams();
@@ -298,9 +309,25 @@ memoryForm.addEventListener("submit", async function (event) {
   if (!valid) return;
 
   // Kirim ke API
+
   try {
-        const isEditing = editingId !== null;
+    const isEditing = editingId !== null;
     const url = isEditing ? API_URL + "/" + editingId : API_URL;
+
+    let headers = {
+      "Content-Type": "application/json"
+    };
+
+    if (isEditing) {
+      const pin = prompt("Masukkan PIN Admin untuk mengedit kenangan:");
+
+      if (pin === null || pin.trim() === "") {
+        alert("Edit dibatalkan. PIN Admin wajib diisi.");
+        return;
+      }
+
+      headers["X-Admin-PIN"] = pin.trim();
+    }
 
     const response = await fetch(url, {
             method: isEditing ? "PUT" : "POST",
