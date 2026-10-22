@@ -287,13 +287,13 @@ Perintah tersebut menghentikan dan menghapus container project, tetapi secara de
 
 **Hindari `docker compose down -v` jika data database masih diperlukan**, karena opsi tersebut dapat menghapus volume.
 
-## Kontribusi Anggota
+## Tim Pengembang
 
 Pembagian kontribusi kelompok disesuaikan dengan pekerjaan yang benar-benar dikerjakan setiap anggota.
 
-- **Orang 1 — Frontend:** pengembangan antarmuka dan interaksi pengguna.
-- **Orang 2 — Backend & Database:** implementasi Flask API, endpoint CRUD, validasi request, integrasi PostgreSQL, proteksi PIN Admin, dan pengujian backend.
-- **Orang 3 — Docker & Integrasi:** konfigurasi Docker, integrasi service, pengujian sistem, dan deployment sesuai pembagian tugas kelompok.
+- **Balqis Keyla Ghassani — Frontend:** pengembangan antarmuka dan interaksi pengguna.
+- **Raden Zahra Auliya Marissa Solihin — Backend & Database:** implementasi Flask API, endpoint CRUD, validasi request, integrasi PostgreSQL, proteksi PIN Admin, dan pengujian backend.
+- **Clarisse Xaviera Kurniaman — Docker & Integrasi:** konfigurasi Docker, integrasi service, pengujian sistem, dan deployment sesuai pembagian tugas kelompok.
 
 ## Repository
 

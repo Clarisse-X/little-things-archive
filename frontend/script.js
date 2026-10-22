@@ -11,8 +11,6 @@ let editingId = null;
 
 const validCategories = ["self-love", "friendship", "achievement", "family", "random happiness"];
 
-// ---------- Tampilkan galeri dari API ----------
-
 function showMessage(text) {
   gallery.innerHTML = "";
   const p = document.createElement("p");
@@ -40,25 +38,24 @@ function renderCard(memory) {
   happiness.className = "happiness";
   happiness.textContent = "😊".repeat(memory.happiness_level);
 
-    const actions = document.createElement("div");
+  const actions = document.createElement("div");
   actions.className = "card-actions";
 
   const editBtn = document.createElement("button");
   editBtn.className = "btn-edit";
   editBtn.textContent = "Edit";
-
-        editBtn.addEventListener("click", function () {
+  editBtn.addEventListener("click", function () {
     askPin(function () { startEdit(memory); });
   });
 
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn-delete";
   deleteBtn.textContent = "Hapus";
-    deleteBtn.addEventListener("click", function () {
+  deleteBtn.addEventListener("click", function () {
     askPin(function () { deleteMemory(memory); });
   });
 
-    const readBtn = document.createElement("button");
+  const readBtn = document.createElement("button");
   readBtn.className = "btn-read";
   readBtn.textContent = "Baca";
   readBtn.addEventListener("click", function () {
@@ -66,7 +63,6 @@ function renderCard(memory) {
   });
 
   actions.append(readBtn, editBtn, deleteBtn);
-
   card.append(category, title, date, happiness, actions);
   gallery.appendChild(card);
 }
@@ -188,21 +184,12 @@ cancelEditBtn.addEventListener("click", function () {
   clearErrors();
 });
 
-
 async function deleteMemory(memory) {
-  const sure = confirm(
-    'Yakin mau menghapus kenangan "' + memory.title + '"?'
-  );
+  const sure = confirm('Yakin mau menghapus kenangan "' + memory.title + '"?');
   if (!sure) return;
 
-  const pin = prompt("Masukkan PIN Admin untuk menghapus kenangan:");
-  if (pin === null || pin.trim() === "") {
-    alert("Penghapusan dibatalkan. PIN Admin wajib diisi.");
-    return;
-  }
-
   try {
-        const response = await fetch(API_URL + "/" + memory.id, {
+    const response = await fetch(API_URL + "/" + memory.id, {
       method: "DELETE",
       headers: { "X-Admin-PIN": adminPin }
     });
@@ -224,7 +211,6 @@ async function deleteMemory(memory) {
     alert("Tidak bisa terhubung ke server. Pastikan backend sudah jalan.");
   }
 }
-
 
 async function loadMemories() {
   const params = new URLSearchParams();
@@ -263,8 +249,6 @@ async function loadMemories() {
 searchInput.addEventListener("input", loadMemories);
 categoryFilter.addEventListener("change", loadMemories);
 
-// ---------- Form tambah kenangan ----------
-
 function clearErrors() {
   document.querySelectorAll(".error").forEach(function (el) {
     el.textContent = "";
@@ -282,7 +266,6 @@ memoryForm.addEventListener("submit", async function (event) {
   const category = document.getElementById("category").value;
   const happiness = Number(document.getElementById("happiness_level").value);
 
-  // Cek cepat di browser (backend tetap yang menentukan)
   let valid = true;
 
   if (title === "") {
@@ -308,29 +291,12 @@ memoryForm.addEventListener("submit", async function (event) {
 
   if (!valid) return;
 
-  // Kirim ke API
-
   try {
     const isEditing = editingId !== null;
     const url = isEditing ? API_URL + "/" + editingId : API_URL;
 
-    let headers = {
-      "Content-Type": "application/json"
-    };
-
-    if (isEditing) {
-      const pin = prompt("Masukkan PIN Admin untuk mengedit kenangan:");
-
-      if (pin === null || pin.trim() === "") {
-        alert("Edit dibatalkan. PIN Admin wajib diisi.");
-        return;
-      }
-
-      headers["X-Admin-PIN"] = pin.trim();
-    }
-
     const response = await fetch(url, {
-            method: isEditing ? "PUT" : "POST",
+      method: isEditing ? "PUT" : "POST",
       headers: isEditing
         ? { "Content-Type": "application/json", "X-Admin-PIN": adminPin }
         : { "Content-Type": "application/json" },
@@ -345,15 +311,13 @@ memoryForm.addEventListener("submit", async function (event) {
 
     const result = await response.json();
 
-        if (response.status === 401 || response.status === 403) {
+    if (response.status === 401 || response.status === 403) {
       stopEdit();
-      document.getElementById("error-title").textContent =
-        "PIN salah atau kedaluwarsa. Klik Edit lagi.";
+      document.getElementById("error-title").textContent = "PIN salah atau kedaluwarsa. Klik Edit lagi.";
       return;
     }
 
     if (response.status === 400 && result.details) {
-      // Tampilkan pesan error dari backend di bawah input yang sesuai
       Object.keys(result.details).forEach(function (field) {
         const el = document.getElementById("error-" + field);
         if (el) el.textContent = result.details[field];
@@ -363,20 +327,16 @@ memoryForm.addEventListener("submit", async function (event) {
 
     if (!response.ok) {
       successMessage.textContent = "";
-      document.getElementById("error-title").textContent =
-        result.error || "Terjadi kesalahan di server.";
+      document.getElementById("error-title").textContent = result.error || "Terjadi kesalahan di server.";
       return;
     }
 
-        const wasEditing = editingId !== null;
+    const wasEditing = editingId !== null;
     stopEdit();
-    successMessage.textContent = wasEditing
-      ? "Perubahan berhasil disimpan!"
-      : "Kenangan berhasil disimpan!";
+    successMessage.textContent = wasEditing ? "Perubahan berhasil disimpan!" : "Kenangan berhasil disimpan!";
     loadMemories();
   } catch (error) {
-    document.getElementById("error-title").textContent =
-      "Tidak bisa terhubung ke server. Pastikan backend sudah jalan.";
+    document.getElementById("error-title").textContent = "Tidak bisa terhubung ke server. Pastikan backend sudah jalan.";
   }
 });
 
